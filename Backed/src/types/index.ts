@@ -34,7 +34,6 @@ export interface Product {
   imageUrl?: string;
   status: 'draft' | 'active' | 'archived' | 'deleted';
   createdAt: Date;
-  quantity?:number
   updatedAt: Date;
 }
 

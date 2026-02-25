@@ -134,7 +134,6 @@ function mapProduct(row: any): Product {
     salePrice: row.sale_price ? parseFloat(row.sale_price) : undefined,
     imageUrl: row.image_url,
     status: row.status,
-    quantity:row.quantity,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
