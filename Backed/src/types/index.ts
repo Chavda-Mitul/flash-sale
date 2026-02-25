@@ -34,6 +34,7 @@ export interface Product {
   imageUrl?: string;
   status: 'draft' | 'active' | 'archived' | 'deleted';
   createdAt: Date;
+  quantity?:number
   updatedAt: Date;
 }
 
@@ -44,6 +45,7 @@ export interface CreateProductInput {
   basePrice: number;
   salePrice?: number;
   imageUrl?: string;
+  quantity?: number
 }
 
 // Inventory types

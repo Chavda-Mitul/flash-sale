@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify';
-import { createProduct, getProductById, getProducts, getFlashSaleProducts, updateProduct } from './service.js';
+import { createProduct, getProductById, getProducts, getFlashSaleProducts, updateProduct, deleteProduct } from './service.js';
 import type { CreateProductInput } from '../../types/index.js';
 
 const routes: FastifyPluginAsync = async (fastify: any) => {
@@ -53,6 +53,7 @@ const routes: FastifyPluginAsync = async (fastify: any) => {
           basePrice: { type: 'number', minimum: 0 },
           salePrice: { type: 'number', minimum: 0 },
           imageUrl: { type: 'string' },
+          quantity: { type: 'integer', minimum: 0 }
         },
       },
     }
@@ -89,6 +90,20 @@ const routes: FastifyPluginAsync = async (fastify: any) => {
   }
 
   fastify.patch('/:id', { preHandler: adminHeader}, updateProductService);
+
+  // Delete product
+  const deleteProductHandler = async (request: any, reply: any) => {
+    const { id } = request.params;
+    const isProductDeleted = await deleteProduct(id);
+
+    if (isProductDeleted) {
+      return reply.code(200).send({ success: true, message: 'Product deleted' });
+    } else {
+      return reply.code(404).send({ error: 'Product not found' });
+    }
+  }
+
+  fastify.delete('/:id', { preHandler: adminHeader }, deleteProductHandler);
 };
 
 export default routes;

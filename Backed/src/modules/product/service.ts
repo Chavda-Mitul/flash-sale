@@ -16,8 +16,17 @@ export async function createProduct(input: CreateProductInput): Promise<Product 
      RETURNING *`,
     [input.name, input.description, input.sku, input.basePrice, input.salePrice, input.imageUrl, 'active']
   );
-  
-  return mapProduct(result.rows[0]);
+
+  const newProduct = mapProduct(result.rows[0]);
+
+  // Create inventory record with quantity 0
+  await db.query(
+    `INSERT INTO inventory (product_id, quantity, reserved)
+     VALUES ($1, $2, $3)`,
+    [newProduct.id, 0, 0]
+  );
+
+  return newProduct;
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
@@ -63,8 +72,17 @@ export async function getFlashSaleProducts(): Promise<Product[]> {
      ORDER BY created_at DESC`,
     []
   );
-  
+
   return result.rows.map(mapProduct);
+}
+
+export async function deleteProduct(id:Product['id']): Promise<boolean> {
+  const result = await db.query(
+    `DELETE FROM products 
+     WHERE id = $1`,
+    [id]
+  );
+  return Boolean(result.rowCount);
 }
 
 export async function updateProduct(
@@ -116,6 +134,7 @@ function mapProduct(row: any): Product {
     salePrice: row.sale_price ? parseFloat(row.sale_price) : undefined,
     imageUrl: row.image_url,
     status: row.status,
+    quantity:row.quantity,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };

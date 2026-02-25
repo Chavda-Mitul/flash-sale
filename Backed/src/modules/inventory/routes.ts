@@ -4,6 +4,28 @@ import { getInventory, getInventoryForProduct, initializeRedisInventory } from '
 const routes: FastifyPluginAsync = async (fastify: any) => {
   const redis = fastify.redis;
 
+  // Get all inventory for a product (must be BEFORE /:productId to avoid matching "all" as productId)
+  fastify.get('/all', async (request: any, reply: any) => {
+    const { productId } = request.query;
+
+    if (!productId) {
+      return reply.code(400).send({ error: 'productId query parameter is required' });
+    }
+
+    const inventory = await getInventoryForProduct(productId);
+
+    return {
+      success: true,
+      data: inventory.map((inv: any) => ({
+        productId: inv.productId,
+        variantId: inv.variantId,
+        quantity: inv.quantity,
+        reserved: inv.reserved,
+        available: inv.available,
+      })),
+    };
+  });
+
   // Get inventory for a product variant
   fastify.get('/:productId', async (request: any, reply: any) => {
     const { productId } = request.params;
@@ -24,24 +46,6 @@ const routes: FastifyPluginAsync = async (fastify: any) => {
         reserved: inventory.reserved,
         available: inventory.available,
       },
-    };
-  });
-
-  // Get all inventory for a product
-  fastify.get('/:productId/all', async (request: any, reply: any) => {
-    const { productId } = request.params;
-
-    const inventory = await getInventoryForProduct(productId);
-
-    return {
-      success: true,
-      data: inventory.map((inv: any) => ({
-        productId: inv.productId,
-        variantId: inv.variantId,
-        quantity: inv.quantity,
-        reserved: inv.reserved,
-        available: inv.available,
-      })),
     };
   });
 
