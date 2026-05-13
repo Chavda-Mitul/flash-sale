@@ -42,8 +42,7 @@ const routes: FastifyPluginAsync = async (fastify: any) => {
 
   // Get inventory for a product variant
   fastify.get('/:productId/:variantId', async (request: any, reply: any) => {
-    const { productId } = request.params;
-    const { variantId } = request.query;
+    const { productId, variantId } = request.params;
 
     const inventory = await getInventory(productId, variantId);
 

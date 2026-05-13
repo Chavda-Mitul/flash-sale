@@ -1,0 +1,301 @@
+{
+  "info": {
+    "name": "FlashCommerce API",
+    "description": "Full happy-path demo: Auth → Admin Setup → Customer Checkout → Payment → View Results",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminToken", "value": "" },
+    { "key": "customerToken", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "orderNumber", "value": "" },
+    { "key": "clientSecret", "value": "" },
+    { "key": "paymentIntentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1 - Health Check",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Auth",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo_customer@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Demo\",\n  \"lastName\": \"Customer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('adminToken', json.data.token);",
+                  "pm.test('Admin login OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@flashcommerce.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('customerToken', json.data.token);",
+                  "pm.test('Customer login OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"customer123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Admin Setup",
+      "item": [
+        {
+          "name": "Create Flash Sale Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('productId', json.data.id);",
+                  "pm.test('Product created', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/products/",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Flash Sale Laptop\",\n  \"sku\": \"LAPTOP-FLASH-001\",\n  \"basePrice\": 1299.99,\n  \"salePrice\": 799.99,\n  \"description\": \"High-performance laptop at flash sale price\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Set Inventory (100 units)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/inventory/{{productId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 100\n}"
+            }
+          }
+        },
+        {
+          "name": "Seed Redis Cache",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/inventory/{{productId}}/init-cache",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        },
+        {
+          "name": "View All Inventory",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/inventory/all"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Customer Flow",
+      "item": [
+        {
+          "name": "Browse All Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/products/"
+          }
+        },
+        {
+          "name": "Browse Flash Sale Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/products/flash-sale"
+          }
+        },
+        {
+          "name": "Initiate Checkout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('orderId', json.data.orderId);",
+                  "pm.collectionVariables.set('orderNumber', json.data.orderNumber);",
+                  "pm.test('Checkout initiated', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/checkout/initiate",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1,\n      \"unitPrice\": 799.99\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Payment Intent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data) {",
+                  "  pm.collectionVariables.set('clientSecret', json.data.clientSecret || '');",
+                  "  pm.collectionVariables.set('paymentIntentId', json.data.paymentIntentId || '');",
+                  "}",
+                  "pm.test('Payment intent created or Stripe key not set', () => {",
+                  "  pm.expect([200, 500]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/payment/create-intent",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Manual Confirm (Fallback)",
+      "item": [
+        {
+          "name": "Confirm Order (manual)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/checkout/confirm",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"stripePaymentId\": \"pi_demo_confirmed\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - View Results",
+      "item": [
+        {
+          "name": "My Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }]
+          }
+        },
+        {
+          "name": "Order Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/{{orderId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }]
+          }
+        },
+        {
+          "name": "Payment Status",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/payment/order/{{orderId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }]
+          }
+        },
+        {
+          "name": "Order by Number (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/number/{{orderNumber}}"
+          }
+        }
+      ]
+    }
+  ]
+}

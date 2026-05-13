@@ -2,7 +2,7 @@
   "name": "flashcommerce-backend",
   "version": "1.0.0",
   "description": "High-Traffic Flash Sale System - Backend (TypeScript)",
-  "main": "dist/server.ts",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
