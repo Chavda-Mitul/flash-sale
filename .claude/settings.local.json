@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run *)",
-      "Bash(node -e \"import\\('stripe'\\).then\\(m => { const s = new m.default\\(''\\); console.log\\('ok'\\) }\\).catch\\(e => console.log\\(e.message\\)\\)\")"
+      "Bash(node -e \"import\\('stripe'\\).then\\(m => { const s = new m.default\\(''\\); console.log\\('ok'\\) }\\).catch\\(e => console.log\\(e.message\\)\\)\")",
+      "Bash(npm install *)"
     ]
   }
 }

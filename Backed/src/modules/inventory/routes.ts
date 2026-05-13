@@ -1,7 +1,6 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getAllProductInventory, getInventory, getInventoryForProduct, initializeRedisInventory, updateQuantity } from './service.js';
-import {InventoryWithAvailable} from './service.js';
-import { request } from 'http';
+import { createInventory, getAllProductInventory, getInventory, getInventoryForProduct, initializeRedisInventory, updateQuantity } from './service.js';
+import { InventoryWithAvailable } from './service.js';
 
 const routes: FastifyPluginAsync = async (fastify: any) => {
   const redis = fastify.redis;
@@ -25,11 +24,7 @@ const routes: FastifyPluginAsync = async (fastify: any) => {
 
   // Get all inventory for a product (must be BEFORE /:productId to avoid matching "all" as productId)
   fastify.get('/:productId', async (request: any, reply: any) => {
-    const { productId } = request.query;
-
-    if (!productId) {
-      return reply.code(400).send({ error: 'productId query parameter is required' });
-    }
+    const { productId } = request.params;
 
     const inventory = await getInventoryForProduct(productId);
 
@@ -69,10 +64,12 @@ const routes: FastifyPluginAsync = async (fastify: any) => {
   });
 
   // To add inventory of the existing invnetory
-fastify.patch('/:productId/:variantId', async(request:any,reply:any)=>{
+fastify.patch('/:productId/:variantId', {
+  preHandler: [fastify.authenticateAdmin],
+}, async(request:any,reply:any)=>{
   const { productId,variantId } = request.params;
 
-  const {quantity} = reply.body;
+  const { quantity } = request.body;
 
   if (quantity === undefined) {
     return reply.code(400).send({ error: 'Quantity is required' });
@@ -99,14 +96,25 @@ fastify.patch('/:productId/:variantId', async(request:any,reply:any)=>{
 });
 
 
-// To create Inventory 
-
-fastify.put('/:productId',async(request:any,reply:any)=>
-{
+// To create Inventory
+fastify.put('/:productId', {
+  preHandler: [fastify.authenticateAdmin],
+}, async (request: any, reply: any) => {
   const { productId } = request.params;
-  const {varient} = reply.body;
+  const { variantId, quantity } = request.body;
 
-  
+  const inventory = await createInventory({ productId, variantId, quantity: quantity ?? 0 });
+
+  return {
+    success: true,
+    data: {
+      id: inventory.id,
+      productId: inventory.productId,
+      variantId: inventory.variantId,
+      quantity: inventory.quantity,
+      reserved: inventory.reserved,
+    },
+  };
 })
 
 
@@ -114,7 +122,7 @@ fastify.put('/:productId',async(request:any,reply:any)=>
 
   // Initialize Redis cache for inventory (admin)
   fastify.post('/:productId/init-cache', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticateAdmin],
   }, async (request: any, reply: any) => {
     const { productId } = request.params;
     const { variantId } = request.query;

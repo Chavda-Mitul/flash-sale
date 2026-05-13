@@ -39,8 +39,7 @@ const routes: FastifyPluginAsync = async (fastify: any) => {
     };
   });
 
-  // Create product (admin only in production)
-  const adminHeader = [fastify.authenticate];
+  const adminHeader = [fastify.authenticateAdmin];
 
   const createProductSchema = {
       body: {

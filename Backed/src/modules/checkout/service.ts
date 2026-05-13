@@ -118,7 +118,24 @@ export async function cancelCheckout(
 }
 
 export async function cleanupExpiredReservations(redis: any): Promise<number> {
-  // This would typically use Redis keyspace notifications or a cron job
-  // For now, this is a placeholder for the cleanup logic
-  return 0;
+  // Find orders still pending past the 15-minute reservation window
+  const result = await db.query(
+    `SELECT id FROM orders
+     WHERE status = 'pending'
+     AND created_at < NOW() - INTERVAL '15 minutes'`
+  );
+
+  const { updateOrderStatus } = await import('../order/service.js');
+  let cancelled = 0;
+
+  for (const row of result.rows) {
+    const reservation = await getReservation(redis, row.id);
+    // If the Redis key is gone the TTL already released the inventory — just cancel the order
+    if (!reservation) {
+      await updateOrderStatus(row.id, 'cancelled');
+      cancelled++;
+    }
+  }
+
+  return cancelled;
 }
