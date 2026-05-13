@@ -12,6 +12,7 @@ import productRoutes from './modules/product/routes.js';
 import inventoryRoutes from './modules/inventory/routes.js';
 import orderRoutes from './modules/order/routes.js';
 import checkoutRoutes from './modules/checkout/routes.js';
+import paymentRoutes from './modules/payment/routes.js';
 import {User} from './types/index.js'
 import rateLimit from '@fastify/rate-limit';
 
@@ -94,6 +95,7 @@ await fastify.register(productRoutes, { prefix: '/api/products' });
 await fastify.register(inventoryRoutes, { prefix: '/api/inventory' });
 await fastify.register(orderRoutes, { prefix: '/api/orders' });
 await fastify.register(checkoutRoutes, { prefix: '/api/checkout' });
+await fastify.register(paymentRoutes, { prefix: '/api/payment' });
 
 // Start server
 const start = async () => {

@@ -26,6 +26,20 @@ export async function createInventory(input: CreateInventoryInput): Promise<Inve
   return mapInventory(result.rows[0]);
 }
 
+export async function getAllProductInventory(): Promise<InventoryWithAvailable[]> {
+  const result = await db.query(
+    'SELECT * FROM inventory'
+  );
+  
+  return result.rows.map((row: any) => {
+    const inv = mapInventory(row);
+    return {
+      ...inv,
+      available: inv.quantity - inv.reserved,
+    };
+  });
+}
+
 export async function getInventory(productId: string, variantId?: string): Promise<InventoryWithAvailable | null> {
   const result = await db.query(
     'SELECT * FROM inventory WHERE product_id = $1 AND variant_id = $2',
