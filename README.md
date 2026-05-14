@@ -34,19 +34,26 @@ User clicks "Buy" → Inventory Reserved in Redis (15 min timer) → Payment →
 ## Project Structure
 
 ```
-src/
-├── server.ts              # Main entry point - starts the API server
-├── db/
-│   ├── connection.ts     # Database connection setup
-│   └── migrate.ts         # Database setup (creates tables)
-├── modules/               # Feature modules (each has routes + service)
-│   ├── auth/             # Login, registration, JWT tokens
-│   ├── product/         # Product catalog
-│   ├── inventory/       # Redis inventory management
-│   ├── checkout/        # Checkout flow
-│   └── order/           # Order management
-└── types/
-    └── index.ts          # TypeScript type definitions
+.
+├── ARCHITECTURE.md        # Deep dive into system design & data flow
+├── README.md              # Project overview & quickstart
+└── Backed/                # Backend source code
+    ├── src/
+    │   ├── app.ts         # Fastify app instance & plugin registration
+    │   ├── server.ts      # Server entry point (starts listener)
+    │   ├── __tests__/     # Automated Jest test suite
+    │   ├── db/
+    │   │   ├── migrate.ts # Database migrations
+    │   │   └── seed.ts    # Initial data seeding
+    │   ├── modules/       # Feature modules
+    │   │   ├── auth/      # JWT Auth
+    │   │   ├── product/   # Catalog management
+    │   │   ├── inventory/ # Redis atomic locking
+    │   │   ├── checkout/  # Order reservation flow
+    │   │   ├── payment/   # Stripe/Payment integration
+    │   │   └── order/     # Order tracking
+    │   └── types/
+    └── postman/           # Postman collection for API testing
 ```
 
 ### Each Module Has:
@@ -60,11 +67,13 @@ src/
 | Technology | Purpose |
 |------------|---------|
 | **Node.js** | JavaScript runtime |
-| **Fastify** | Web framework (handles HTTP requests) |
-| **TypeScript** | Type safety |
-| **PostgreSQL** | Main database (stores users, orders, products) |
-| **Redis** | Fast in-memory storage (inventory locks, sessions) |
-| **JWT** | Authentication (keeps users logged in) |
+| **Fastify** | High-performance web framework |
+| **TypeScript** | Static type safety |
+| **PostgreSQL** | Primary data store (Orders, Products) |
+| **Redis** | Fast in-memory storage (Inventory, TTL) |
+| **Docker** | Containerization & environment consistency |
+| **Jest** | Unit and Integration testing |
+| **JWT** | Secure Authentication |
 
 ---
 
@@ -88,34 +97,58 @@ All endpoints start with `/api/`:
 
 ## Running the Project
 
-### Prerequisites
-- Node.js installed
-- PostgreSQL running
-- Redis running
+### Docker Quickstart (Recommended)
+The easiest way to get everything running is using Docker:
 
-### Setup
 ```bash
-# Install dependencies
-npm install
-
-# Copy environment variables
-copy .env.example .env
-# Edit .env with your database/Redis credentials
-
-# Run database migrations
-npm run db:migrate
-
-# Start development server
-npm run dev
+# From the project root
+docker-compose up -d --build
 ```
+This starts PostgreSQL, Redis, and the Backend API. The API will be available at `http://localhost:3000`.
 
-### Commands
+### Local Setup
+If you prefer running components individually:
+
+1. **Prerequisites:** Node.js, PostgreSQL, and Redis installed.
+2. **Install Dependencies:** `npm install` (inside `Backed/`)
+3. **Environment:** Copy `.env.example` to `.env` and configure credentials.
+4. **Database Setup:**
+   ```bash
+   npm run db:migrate  # Create tables
+   npm run db:seed     # Populate with initial products & users
+   ```
+5. **Start:** `npm run dev`
+
+### Available Commands
 ```bash
 npm run dev          # Start dev server (auto-reload)
 npm run build        # Compile TypeScript
-npm test            # Run tests
-npm run type-check  # Check for TypeScript errors
+npm test             # Run Jest test suite
+npm run type-check   # Check for TypeScript errors
+npm run db:seed      # Seed initial data
 ```
+
+---
+
+## Testing
+
+### Automated Tests
+We use **Jest** for unit and integration testing.
+```bash
+npm test
+```
+Tests cover:
+- Authentication (Register/Login)
+- Product Catalog
+- Inventory Locking (Redis Lua scripts)
+- Checkout Flow (Reservation & Expiry)
+- Payment Processing
+
+### API Testing (Postman)
+A Postman collection is provided in `postman/FlashCommerce.postman_collection.json`. 
+1. Import it into Postman.
+2. Set up an environment with `base_url = http://localhost:3000`.
+3. Follow the collection folders to test the complete end-to-end flow from registration to payment.
 
 ---
 
@@ -213,7 +246,11 @@ FlashCommerce is a **flash sale backend** that:
 - Handles high traffic using Redis
 - Prevents overselling with atomic operations
 - Uses 15-minute reservation timers
+- Integrates a secure Payment flow (Stripe)
 - Stores persistent data in PostgreSQL
 - Provides RESTful API with Swagger documentation
+- Includes Docker support and automated testing (Jest)
+
+For a deeper dive into the technical design, database schema, and detailed checkout logic, please refer to **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
 
 The key insight: **Redis handles the chaos of flash sales, PostgreSQL stores the truth.**
